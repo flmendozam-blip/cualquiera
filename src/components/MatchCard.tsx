@@ -6,6 +6,7 @@ import { h2hForPair } from '../data/h2h';
 import { TeamBadge } from './TeamBadge';
 import { OddsGauge } from './OddsGauge';
 import { H2HEditor } from './H2HEditor';
+import { RefereePicker } from './RefereePicker';
 import { cn, fmtDate, fmtOdds, pct, COMPETITION_LABEL } from '../lib/format';
 
 const CONFIDENCE_STYLE: Record<string, string> = {
@@ -17,21 +18,24 @@ const CONFIDENCE_STYLE: Record<string, string> = {
 export function MatchCard({
   match,
   onEditTeam,
+  onEditReferee,
 }: {
   match: MatchEntry;
   onEditTeam: (teamId: string) => void;
+  onEditReferee: (refereeId: string) => void;
 }) {
-  const { getTeam, h2h, removeMatch, addH2HMatch, removeH2HMatch, betSlip, addLeg, removeLeg } = useAppState();
+  const { getTeam, getReferee, h2h, removeMatch, addH2HMatch, removeH2HMatch, betSlip, addLeg, removeLeg } = useAppState();
   const home = getTeam(match.homeTeamId);
   const away = getTeam(match.awayTeamId);
+  const referee = getReferee(match.refereeId);
   const [showDetails, setShowDetails] = useState(false);
   const [showH2H, setShowH2H] = useState(false);
   const [showAllMarkets, setShowAllMarkets] = useState(false);
 
   const analysis = useMemo(() => {
     if (!home || !away) return null;
-    return analyzeMatch(match, home, away, h2h);
-  }, [match, home, away, h2h]);
+    return analyzeMatch(match, home, away, h2h, referee);
+  }, [match, home, away, h2h, referee]);
 
   const pairH2H = useMemo(() => (home && away ? h2hForPair(home.id, away.id, h2h) : []), [home, away, h2h]);
 
@@ -91,6 +95,27 @@ export function MatchCard({
           </div>
         </div>
 
+        <div className="flex gap-3 text-xs text-slate-400">
+          <span className="bg-slate-800/60 rounded-lg px-2.5 py-1.5 flex-1 text-center">
+            🚩 Córners esp. <span className="text-slate-200 font-semibold">{analysis.expectedCorners.toFixed(1)}</span>
+          </span>
+          <span className="bg-slate-800/60 rounded-lg px-2.5 py-1.5 flex-1 text-center">
+            🟨 Tarjetas esp. <span className="text-slate-200 font-semibold">{analysis.expectedCards.toFixed(1)}</span>
+          </span>
+        </div>
+
+        {referee ? (
+          <button
+            onClick={() => onEditReferee(referee.id)}
+            className="flex items-center justify-between gap-2 bg-slate-800/40 border border-slate-700 rounded-xl px-3 py-2 text-left hover:border-slate-500"
+          >
+            <span className="text-sm text-slate-200">🟨 Árbitro: <span className="font-medium">{referee.name}</span></span>
+            <span className="text-xs text-slate-400">{referee.avgCardsPerMatch.toFixed(1)} tarjetas/partido</span>
+          </button>
+        ) : (
+          <RefereePicker matchId={match.id} />
+        )}
+
         {analysis.recommended && (
           <div className="bg-slate-800/60 border border-pitch-700/40 rounded-xl p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -141,7 +166,7 @@ export function MatchCard({
 
         <div>
           <button onClick={() => setShowAllMarkets((v) => !v)} className="text-xs text-slate-400 hover:text-slate-200 mb-2">
-            {showAllMarkets ? 'Ver menos mercados' : 'Ver todos los mercados (10)'}
+            {showAllMarkets ? 'Ver menos mercados' : `Ver todos los mercados (${analysis.markets.length})`}
           </button>
           <div className="flex flex-col gap-1.5">
             {marketsToShow.map((m) => (

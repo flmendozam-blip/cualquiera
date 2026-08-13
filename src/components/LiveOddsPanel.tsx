@@ -82,15 +82,10 @@ export function LiveOddsPanel() {
     const isLive = new Date(ev.commence_time).getTime() <= Date.now();
     const competition = guessCompetition(ev.sport_title);
     const date = ev.commence_time.slice(0, 10);
-    addMatch(
-      home.id,
-      away.id,
-      date,
-      competition,
-      prices && bm
-        ? { ...prices, bookmaker: bm.title, isBetano, isLive, fetchedAt: new Date().toISOString() }
-        : undefined
-    );
+    addMatch(home.id, away.id, date, competition, {
+      realOdds:
+        prices && bm ? { ...prices, bookmaker: bm.title, isBetano, isLive, fetchedAt: new Date().toISOString() } : undefined,
+    });
     setAddedIds((prev) => new Set(prev).add(ev.id));
   }
 

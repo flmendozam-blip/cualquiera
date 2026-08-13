@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { Team, H2HMatch, MatchEntry, BetLeg, Absence, MarketKey, CompetitionType, RealOddsSnapshot } from '../types';
-import { TEAMS } from '../data/teams';
+import type { Team, H2HMatch, MatchEntry, BetLeg, Absence, MarketKey, CompetitionType, RealOddsSnapshot, Referee } from '../types';
+import { TEAMS, createNeutralTeam } from '../data/teams';
 import { H2H_SEED } from '../data/h2h';
+import { REFEREES, LEAGUE_AVG_CARDS_PER_MATCH } from '../data/referees';
+import { matchTeam } from '../lib/teamMatch';
 
 let uid = 1000;
 const nextId = (prefix: string) => `${prefix}-${uid++}`;
@@ -13,22 +15,29 @@ interface AppStateValue {
   h2h: H2HMatch[];
   matches: MatchEntry[];
   betSlip: BetLeg[];
+  referees: Referee[];
   oddsApiKey: string;
   setOddsApiKey: (key: string) => void;
   getTeam: (id: string) => Team | undefined;
+  getReferee: (id?: string) => Referee | undefined;
   addMatch: (
     homeTeamId: string,
     awayTeamId: string,
     date: string,
     competition: CompetitionType,
-    realOdds?: RealOddsSnapshot
+    extra?: { realOdds?: RealOddsSnapshot; refereeId?: string; sofascoreEventId?: number }
   ) => void;
   removeMatch: (matchId: string) => void;
+  setMatchReferee: (matchId: string, refereeId: string | undefined) => void;
   updateTeam: (teamId: string, patch: Partial<Team>) => void;
+  ensureTeam: (sofascoreTeamId: number, name: string, short: string, league: string, country: string) => string;
   addAbsence: (teamId: string, absence: Omit<Absence, 'id'>) => void;
   removeAbsence: (teamId: string, absenceId: string) => void;
   addH2HMatch: (record: Omit<H2HMatch, 'id'>) => void;
   removeH2HMatch: (recordId: string) => void;
+  addReferee: (r: Omit<Referee, 'id'>) => string;
+  updateReferee: (id: string, patch: Partial<Referee>) => void;
+  ensureReferee: (name: string) => string;
   addLeg: (matchId: string, marketKey: MarketKey) => void;
   removeLeg: (matchId: string) => void;
   clearSlip: () => void;
@@ -41,6 +50,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [h2h, setH2h] = useState<H2HMatch[]>(() => [...H2H_SEED]);
   const [matches, setMatches] = useState<MatchEntry[]>([]);
   const [betSlip, setBetSlip] = useState<BetLeg[]>([]);
+  const [referees, setReferees] = useState<Referee[]>(() => [...REFEREES]);
   const [oddsApiKey, setOddsApiKeyState] = useState<string>(
     () => localStorage.getItem(ODDS_API_KEY_STORAGE) ?? ''
   );
@@ -52,6 +62,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getTeam = useCallback((id: string) => teams.find((t) => t.id === id), [teams]);
+  const getReferee = useCallback((id?: string) => (id ? referees.find((r) => r.id === id) : undefined), [referees]);
 
   const addMatch = useCallback(
     (
@@ -59,11 +70,21 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       awayTeamId: string,
       date: string,
       competition: CompetitionType,
-      realOdds?: RealOddsSnapshot
+      extra?: { realOdds?: RealOddsSnapshot; refereeId?: string; sofascoreEventId?: number }
     ) => {
       setMatches((prev) => [
         ...prev,
-        { id: nextId('match'), homeTeamId, awayTeamId, date, competition, notes: '', realOdds },
+        {
+          id: nextId('match'),
+          homeTeamId,
+          awayTeamId,
+          date,
+          competition,
+          notes: '',
+          realOdds: extra?.realOdds,
+          refereeId: extra?.refereeId,
+          sofascoreEventId: extra?.sofascoreEventId,
+        },
       ]);
     },
     []
@@ -74,9 +95,48 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setBetSlip((prev) => prev.filter((l) => l.matchId !== matchId));
   }, []);
 
+  const setMatchReferee = useCallback((matchId: string, refereeId: string | undefined) => {
+    setMatches((prev) => prev.map((m) => (m.id === matchId ? { ...m, refereeId } : m)));
+  }, []);
+
   const updateTeam = useCallback((teamId: string, patch: Partial<Team>) => {
     setTeams((prev) => prev.map((t) => (t.id === teamId ? { ...t, ...patch } : t)));
   }, []);
+
+  const ensureTeam = useCallback(
+    (sofascoreTeamId: number, name: string, short: string, league: string, country: string): string => {
+      const existing = teams.find((t) => t.sofascoreTeamId === sofascoreTeamId) ?? matchTeam(name, teams);
+      if (existing) return existing.id;
+      const created = createNeutralTeam(`sofa-${sofascoreTeamId}`, name, short, league, country, sofascoreTeamId);
+      setTeams((prev) => [...prev, created]);
+      return created.id;
+    },
+    [teams]
+  );
+
+  const addReferee = useCallback((r: Omit<Referee, 'id'>): string => {
+    const id = nextId('ref');
+    setReferees((prev) => [...prev, { ...r, id }]);
+    return id;
+  }, []);
+
+  const updateReferee = useCallback((id: string, patch: Partial<Referee>) => {
+    setReferees((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }, []);
+
+  const ensureReferee = useCallback(
+    (name: string): string => {
+      const existing = referees.find((r) => r.name.toLowerCase() === name.toLowerCase());
+      if (existing) return existing.id;
+      const id = nextId('ref');
+      setReferees((prev) => [
+        ...prev,
+        { id, name, avgCardsPerMatch: LEAGUE_AVG_CARDS_PER_MATCH, matchesSample: 0, source: 'sofascore' },
+      ]);
+      return id;
+    },
+    [referees]
+  );
 
   const addAbsence = useCallback((teamId: string, absence: Omit<Absence, 'id'>) => {
     setTeams((prev) =>
@@ -119,21 +179,53 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       h2h,
       matches,
       betSlip,
+      referees,
       oddsApiKey,
       setOddsApiKey,
       getTeam,
+      getReferee,
       addMatch,
       removeMatch,
+      setMatchReferee,
       updateTeam,
+      ensureTeam,
       addAbsence,
       removeAbsence,
       addH2HMatch,
       removeH2HMatch,
+      addReferee,
+      updateReferee,
+      ensureReferee,
       addLeg,
       removeLeg,
       clearSlip,
     }),
-    [teams, h2h, matches, betSlip, oddsApiKey, setOddsApiKey, getTeam, addMatch, removeMatch, updateTeam, addAbsence, removeAbsence, addH2HMatch, removeH2HMatch, addLeg, removeLeg, clearSlip]
+    [
+      teams,
+      h2h,
+      matches,
+      betSlip,
+      referees,
+      oddsApiKey,
+      setOddsApiKey,
+      getTeam,
+      getReferee,
+      addMatch,
+      removeMatch,
+      setMatchReferee,
+      updateTeam,
+      ensureTeam,
+      addAbsence,
+      removeAbsence,
+      addH2HMatch,
+      removeH2HMatch,
+      addReferee,
+      updateReferee,
+      ensureReferee,
+      addLeg,
+      removeLeg,
+      clearSlip,
+    ]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

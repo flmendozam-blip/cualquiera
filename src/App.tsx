@@ -3,20 +3,24 @@ import { AppStateProvider, useAppState } from './store/AppState';
 import { Header } from './components/Header';
 import { HowItWorks } from './components/HowItWorks';
 import { AddMatchForm } from './components/AddMatchForm';
+import { FixtureBrowser } from './components/FixtureBrowser';
 import { LiveOddsPanel } from './components/LiveOddsPanel';
 import { MatchCard } from './components/MatchCard';
 import { BetSlip } from './components/BetSlip';
 import { TeamEditorModal } from './components/TeamEditorModal';
+import { RefereeEditorModal } from './components/RefereeEditorModal';
 import { Disclaimer } from './components/Disclaimer';
 
 function AppContent() {
   const { matches } = useAppState();
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [editingRefereeId, setEditingRefereeId] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen max-w-6xl mx-auto px-4 py-6 flex flex-col gap-6">
       <Header />
       <HowItWorks />
+      <FixtureBrowser />
       <LiveOddsPanel />
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
@@ -32,7 +36,7 @@ function AppContent() {
             </p>
             <div className="flex flex-col gap-4">
               {matches.map((m) => (
-                <MatchCard key={m.id} match={m} onEditTeam={setEditingTeamId} />
+                <MatchCard key={m.id} match={m} onEditTeam={setEditingTeamId} onEditReferee={setEditingRefereeId} />
               ))}
               {matches.length === 0 && (
                 <div className="text-sm text-slate-500 border border-dashed border-slate-700 rounded-2xl p-8 text-center">
@@ -49,6 +53,7 @@ function AppContent() {
       <Disclaimer />
 
       {editingTeamId && <TeamEditorModal teamId={editingTeamId} onClose={() => setEditingTeamId(null)} />}
+      {editingRefereeId && <RefereeEditorModal refereeId={editingRefereeId} onClose={() => setEditingRefereeId(null)} />}
     </div>
   );
 }

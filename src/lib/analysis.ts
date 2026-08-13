@@ -5,12 +5,17 @@ import type {
   MatchAnalysis,
   MarketResult,
   MarketKey,
+  Referee,
 } from '../types';
-import { scoreMatrix } from './poisson';
+import { scoreMatrix, overProbability } from './poisson';
 import { probToFairOdds, fairOddsToMarketOdds, isInTargetRange, TARGET_MIN, TARGET_MAX } from './odds';
 import { h2hForPair } from '../data/h2h';
+import { LEAGUE_AVG_CARDS_PER_MATCH } from '../data/referees';
 
 const LEAGUE_AVG_DEFENSE = 1.1;
+const LEAGUE_AVG_CORNERS_AGAINST = 5.0;
+const CORNERS_LINE = 9.5;
+const CARDS_LINE = 4.5;
 const MAX_GOALS = 8;
 
 const MARKET_LABELS: Record<MarketKey, (home: Team, away: Team) => string> = {
@@ -24,6 +29,10 @@ const MARKET_LABELS: Record<MarketKey, (home: Team, away: Team) => string> = {
   UNDER_2_5: () => 'Menos de 2.5 goles',
   BTTS_YES: () => 'Ambos anotan: Sí',
   BTTS_NO: () => 'Ambos anotan: No',
+  CORNERS_OVER: () => `Más de ${CORNERS_LINE} córners`,
+  CORNERS_UNDER: () => `Menos de ${CORNERS_LINE} córners`,
+  CARDS_OVER: () => `Más de ${CARDS_LINE} tarjetas`,
+  CARDS_UNDER: () => `Menos de ${CARDS_LINE} tarjetas`,
 };
 
 function formScore(form: Team['form']): number {
@@ -107,7 +116,8 @@ export function analyzeMatch(
   match: MatchEntry,
   home: Team,
   away: Team,
-  allH2H: H2HMatch[]
+  allH2H: H2HMatch[],
+  referee?: Referee
 ): MatchAnalysis {
   const h2h = h2hForPair(home.id, away.id, allH2H).slice(0, 5);
   const winsA = h2h.filter(
@@ -173,6 +183,24 @@ export function analyzeMatch(
   const pOver = sumRegion(matrix, (h, a) => h + a >= 3);
   const pBttsYes = sumRegion(matrix, (h, a) => h >= 1 && a >= 1);
 
+  // Córners esperados: mismo enfoque que los goles (a favor propio vs. en contra rival),
+  // con un pequeño extra de localía.
+  const cornersHome =
+    home.cornersFor * (away.cornersAgainst / LEAGUE_AVG_CORNERS_AGAINST) * (1 + home.homeAdvantage * 0.3);
+  const cornersAway =
+    away.cornersFor * (home.cornersAgainst / LEAGUE_AVG_CORNERS_AGAINST) * (1 - home.homeAdvantage * 0.15);
+  const expectedCorners = cornersHome + cornersAway;
+  const pCornersOver = overProbability(expectedCorners, CORNERS_LINE);
+
+  // Tarjetas esperadas: promedio de cada equipo, ajustado por el árbitro asignado y el
+  // extra de tensión de un derbi/clásico.
+  const refereeMultiplier = referee ? referee.avgCardsPerMatch / LEAGUE_AVG_CARDS_PER_MATCH : 1;
+  const derbiMultiplier = match.competition === 'derbi' ? 1.15 : 1;
+  const cardsHome = home.avgCardsFor * refereeMultiplier * derbiMultiplier;
+  const cardsAway = away.avgCardsFor * refereeMultiplier * derbiMultiplier;
+  const expectedCards = cardsHome + cardsAway;
+  const pCardsOver = overProbability(expectedCards, CARDS_LINE);
+
   const markets: MarketResult[] = [
     buildMarket('1', home, away, pHome),
     buildMarket('X', home, away, pDraw),
@@ -184,6 +212,10 @@ export function analyzeMatch(
     buildMarket('UNDER_2_5', home, away, 1 - pOver),
     buildMarket('BTTS_YES', home, away, pBttsYes),
     buildMarket('BTTS_NO', home, away, 1 - pBttsYes),
+    buildMarket('CORNERS_OVER', home, away, pCornersOver),
+    buildMarket('CORNERS_UNDER', home, away, 1 - pCornersOver),
+    buildMarket('CARDS_OVER', home, away, pCardsOver),
+    buildMarket('CARDS_UNDER', home, away, 1 - pCardsOver),
   ];
 
   const inRange = markets.filter((m) => m.inTargetRange).sort((a, b) => b.probability - a.probability);
@@ -231,6 +263,21 @@ export function analyzeMatch(
   narrative.push(
     `Goles esperados (modelo Poisson): ${xgHome.toFixed(2)} para ${home.short} — ${xgAway.toFixed(2)} para ${away.short}.`
   );
+  narrative.push(
+    `Córners esperados: ${expectedCorners.toFixed(1)} en total (${cornersHome.toFixed(1)} de ${home.short}, ${cornersAway.toFixed(1)} de ${away.short}).`
+  );
+  if (referee) {
+    narrative.push(
+      `Árbitro: ${referee.name}, con un promedio de ${referee.avgCardsPerMatch.toFixed(1)} tarjetas por partido${
+        referee.matchesSample > 0 ? ` (muestra de ${referee.matchesSample} partidos)` : ''
+      } — ${refereeMultiplier > 1.1 ? 'es más riguroso que el promedio, lo que sube la expectativa de tarjetas.' : refereeMultiplier < 0.9 ? 'es más permisivo que el promedio, lo que baja la expectativa de tarjetas.' : 'está en la media de rigurosidad.'}`
+    );
+  } else {
+    narrative.push('No se asignó árbitro a este partido — el mercado de tarjetas usa solo el promedio de ambos equipos, sin ajuste de rigurosidad arbitral.');
+  }
+  narrative.push(
+    `Tarjetas esperadas: ${expectedCards.toFixed(1)} en total (${cardsHome.toFixed(1)} de ${home.short}, ${cardsAway.toFixed(1)} de ${away.short})${match.competition === 'derbi' ? ', con un extra por tratarse de un derbi/clásico' : ''}.`
+  );
   if (recommended) {
     narrative.push(
       `Recomendación: "${recommended.label}" con probabilidad estimada ${(recommended.probability * 100).toFixed(0)}% y cuota de mercado aproximada ${recommended.marketOdds.toFixed(2)}${recommended.inTargetRange ? ' (dentro del rango objetivo 1.5–2.0)' : ' (fuera del rango 1.5–2.0, es la opción más cercana disponible)'}.`
@@ -241,6 +288,8 @@ export function analyzeMatch(
     matchId: match.id,
     xgHome,
     xgAway,
+    expectedCorners,
+    expectedCards,
     markets,
     recommended,
     confidence,

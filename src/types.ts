@@ -29,6 +29,19 @@ export interface Team {
   homeAdvantage: number; // 0..0.25
   restDays: number; // days since last competitive match (editable)
   absences: Absence[];
+  cornersFor: number; // avg córners a favor por partido
+  cornersAgainst: number; // avg córners en contra por partido
+  avgCardsFor: number; // avg tarjetas (amarillas + 2*rojas) recibidas por partido
+  formSource?: 'seed' | 'sofascore'; // origen del dato de forma/ataque-defensa
+  sofascoreTeamId?: number; // id en SofaScore, para reconocer el mismo equipo entre partidos
+}
+
+export interface Referee {
+  id: string;
+  name: string;
+  avgCardsPerMatch: number; // promedio de tarjetas totales (ambos equipos) que muestra por partido
+  matchesSample: number; // partidos usados para calcular el promedio (confianza del dato)
+  source: 'seed' | 'sofascore' | 'manual';
 }
 
 export interface H2HMatch {
@@ -52,7 +65,11 @@ export type MarketKey =
   | 'OVER_2_5'
   | 'UNDER_2_5'
   | 'BTTS_YES'
-  | 'BTTS_NO';
+  | 'BTTS_NO'
+  | 'CORNERS_OVER'
+  | 'CORNERS_UNDER'
+  | 'CARDS_OVER'
+  | 'CARDS_UNDER';
 
 export interface MarketResult {
   key: MarketKey;
@@ -67,6 +84,8 @@ export interface MatchAnalysis {
   matchId: string;
   xgHome: number;
   xgAway: number;
+  expectedCorners: number;
+  expectedCards: number;
   markets: MarketResult[];
   recommended: MarketResult | null;
   confidence: 'Alta' | 'Media' | 'Baja';
@@ -93,6 +112,8 @@ export interface MatchEntry {
   competition: CompetitionType;
   notes: string;
   realOdds?: RealOddsSnapshot;
+  refereeId?: string;
+  sofascoreEventId?: number;
 }
 
 export interface BetLeg {

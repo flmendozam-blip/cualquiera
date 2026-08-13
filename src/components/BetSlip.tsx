@@ -6,7 +6,7 @@ import { fmtOdds, pct, fmtDate } from '../lib/format';
 import { OddsGauge } from './OddsGauge';
 
 export function BetSlip() {
-  const { matches, h2h, betSlip, getTeam, removeLeg, clearSlip } = useAppState();
+  const { matches, h2h, betSlip, getTeam, getReferee, removeLeg, clearSlip } = useAppState();
 
   const legs = useMemo(() => {
     return betSlip
@@ -16,13 +16,14 @@ export function BetSlip() {
         const home = getTeam(match.homeTeamId);
         const away = getTeam(match.awayTeamId);
         if (!home || !away) return null;
-        const analysis = analyzeMatch(match, home, away, h2h);
+        const referee = getReferee(match.refereeId);
+        const analysis = analyzeMatch(match, home, away, h2h, referee);
         const market = analysis.markets.find((mk) => mk.key === leg.marketKey);
         if (!market) return null;
         return { match, home, away, market };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
-  }, [betSlip, matches, h2h, getTeam]);
+  }, [betSlip, matches, h2h, getTeam, getReferee]);
 
   const combo = comboOdds(legs.map((l) => l.market.marketOdds));
   const comboProb = comboProbability(legs.map((l) => l.market.probability));

@@ -8,6 +8,18 @@ export function poissonPmf(lambda: number, k: number): number {
   return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
 }
 
+/** P(X <= k) para X ~ Poisson(lambda). */
+export function poissonCdf(lambda: number, k: number): number {
+  let sum = 0;
+  for (let i = 0; i <= k; i++) sum += poissonPmf(lambda, i);
+  return sum;
+}
+
+/** P(X > line) para X ~ Poisson(lambda), con line tipo "9.5" (over/under de una línea .5). */
+export function overProbability(lambda: number, line: number): number {
+  return 1 - poissonCdf(lambda, Math.floor(line));
+}
+
 /** Distribución conjunta de marcadores 0..maxGoals x 0..maxGoals a partir de dos xG independientes. */
 export function scoreMatrix(xgHome: number, xgAway: number, maxGoals = 8): number[][] {
   const homeProbs = Array.from({ length: maxGoals + 1 }, (_, k) => poissonPmf(xgHome, k));
