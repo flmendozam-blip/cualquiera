@@ -120,6 +120,25 @@ export function MatchCard({
           </div>
         )}
 
+        {match.realOdds && (
+          <div className="bg-slate-800/40 border border-slate-700 rounded-xl p-3 flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-400">
+                Cuota real {match.realOdds.isLive ? '🔴 en vivo' : 'pre-partido'} vía{' '}
+                <span className="text-slate-200 font-medium">{match.realOdds.bookmaker}</span>
+              </span>
+              <span className={cn('rounded-full px-2 py-0.5', match.realOdds.isBetano ? 'bg-pitch-900/50 text-pitch-400' : 'bg-slate-700 text-slate-400')}>
+                {match.realOdds.isBetano ? 'Betano' : 'Betano no disponible aquí'}
+              </span>
+            </div>
+            <div className="flex gap-4 text-sm">
+              <span className={cn(analysis.recommended?.key === '1' && 'text-pitch-400 font-bold')}>1: {fmtOdds(match.realOdds.home)}</span>
+              <span className={cn(analysis.recommended?.key === 'X' && 'text-pitch-400 font-bold')}>X: {fmtOdds(match.realOdds.draw)}</span>
+              <span className={cn(analysis.recommended?.key === '2' && 'text-pitch-400 font-bold')}>2: {fmtOdds(match.realOdds.away)}</span>
+            </div>
+          </div>
+        )}
+
         <div>
           <button onClick={() => setShowAllMarkets((v) => !v)} className="text-xs text-slate-400 hover:text-slate-200 mb-2">
             {showAllMarkets ? 'Ver menos mercados' : 'Ver todos los mercados (10)'}

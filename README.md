@@ -19,6 +19,16 @@ apuntando a una cuota objetivo de **1.5–2.0**.
    calcula la cuota y probabilidad combinada en tiempo real, avisando si el riesgo es
    demasiado alto.
 
+## Cuotas reales (Betano y otras casas)
+
+El panel **"🔌 Cuotas reales"** conecta con [The Odds API](https://the-odds-api.com/), un
+agregador independiente de cuotas de casas de apuestas reales (Betano incluida cuando
+está disponible en la región) por un canal oficial — la app no hace scraping de Betano.
+Pega tu propia API key gratuita (se guarda solo en tu navegador), carga las ligas
+disponibles y busca partidos próximos o en vivo con sus cuotas 1X2 reales. Cada partido
+que analices desde ahí queda comparado, dentro de su tarjeta, contra la recomendación del
+modelo. La app no coloca apuestas por ti: la selección final siempre la haces tú en Betano.
+
 ## Datos de los equipos
 
 Los datos de identidad (nombre, liga, país) son reales. Los valores de forma reciente,

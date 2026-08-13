@@ -3,6 +3,7 @@ import { AppStateProvider, useAppState } from './store/AppState';
 import { Header } from './components/Header';
 import { HowItWorks } from './components/HowItWorks';
 import { AddMatchForm } from './components/AddMatchForm';
+import { LiveOddsPanel } from './components/LiveOddsPanel';
 import { MatchCard } from './components/MatchCard';
 import { BetSlip } from './components/BetSlip';
 import { TeamEditorModal } from './components/TeamEditorModal';
@@ -16,6 +17,7 @@ function AppContent() {
     <div className="min-h-screen max-w-6xl mx-auto px-4 py-6 flex flex-col gap-6">
       <Header />
       <HowItWorks />
+      <LiveOddsPanel />
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
         <div className="flex flex-col gap-5">

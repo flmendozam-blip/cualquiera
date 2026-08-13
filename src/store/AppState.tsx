@@ -1,18 +1,28 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { Team, H2HMatch, MatchEntry, BetLeg, Absence, MarketKey, CompetitionType } from '../types';
+import type { Team, H2HMatch, MatchEntry, BetLeg, Absence, MarketKey, CompetitionType, RealOddsSnapshot } from '../types';
 import { TEAMS } from '../data/teams';
 import { H2H_SEED } from '../data/h2h';
 
 let uid = 1000;
 const nextId = (prefix: string) => `${prefix}-${uid++}`;
 
+const ODDS_API_KEY_STORAGE = 'oddsApiKey';
+
 interface AppStateValue {
   teams: Team[];
   h2h: H2HMatch[];
   matches: MatchEntry[];
   betSlip: BetLeg[];
+  oddsApiKey: string;
+  setOddsApiKey: (key: string) => void;
   getTeam: (id: string) => Team | undefined;
-  addMatch: (homeTeamId: string, awayTeamId: string, date: string, competition: CompetitionType) => void;
+  addMatch: (
+    homeTeamId: string,
+    awayTeamId: string,
+    date: string,
+    competition: CompetitionType,
+    realOdds?: RealOddsSnapshot
+  ) => void;
   removeMatch: (matchId: string) => void;
   updateTeam: (teamId: string, patch: Partial<Team>) => void;
   addAbsence: (teamId: string, absence: Omit<Absence, 'id'>) => void;
@@ -31,15 +41,33 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [h2h, setH2h] = useState<H2HMatch[]>(() => [...H2H_SEED]);
   const [matches, setMatches] = useState<MatchEntry[]>([]);
   const [betSlip, setBetSlip] = useState<BetLeg[]>([]);
+  const [oddsApiKey, setOddsApiKeyState] = useState<string>(
+    () => localStorage.getItem(ODDS_API_KEY_STORAGE) ?? ''
+  );
+
+  const setOddsApiKey = useCallback((key: string) => {
+    setOddsApiKeyState(key);
+    if (key) localStorage.setItem(ODDS_API_KEY_STORAGE, key);
+    else localStorage.removeItem(ODDS_API_KEY_STORAGE);
+  }, []);
 
   const getTeam = useCallback((id: string) => teams.find((t) => t.id === id), [teams]);
 
-  const addMatch = useCallback((homeTeamId: string, awayTeamId: string, date: string, competition: CompetitionType) => {
-    setMatches((prev) => [
-      ...prev,
-      { id: nextId('match'), homeTeamId, awayTeamId, date, competition, notes: '' },
-    ]);
-  }, []);
+  const addMatch = useCallback(
+    (
+      homeTeamId: string,
+      awayTeamId: string,
+      date: string,
+      competition: CompetitionType,
+      realOdds?: RealOddsSnapshot
+    ) => {
+      setMatches((prev) => [
+        ...prev,
+        { id: nextId('match'), homeTeamId, awayTeamId, date, competition, notes: '', realOdds },
+      ]);
+    },
+    []
+  );
 
   const removeMatch = useCallback((matchId: string) => {
     setMatches((prev) => prev.filter((m) => m.id !== matchId));
@@ -91,6 +119,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       h2h,
       matches,
       betSlip,
+      oddsApiKey,
+      setOddsApiKey,
       getTeam,
       addMatch,
       removeMatch,
@@ -103,7 +133,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       removeLeg,
       clearSlip,
     }),
-    [teams, h2h, matches, betSlip, getTeam, addMatch, removeMatch, updateTeam, addAbsence, removeAbsence, addH2HMatch, removeH2HMatch, addLeg, removeLeg, clearSlip]
+    [teams, h2h, matches, betSlip, oddsApiKey, setOddsApiKey, getTeam, addMatch, removeMatch, updateTeam, addAbsence, removeAbsence, addH2HMatch, removeH2HMatch, addLeg, removeLeg, clearSlip]
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

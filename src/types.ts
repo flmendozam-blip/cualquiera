@@ -75,6 +75,16 @@ export interface MatchAnalysis {
   h2hSummary: { winsA: number; winsB: number; draws: number; total: number };
 }
 
+export interface RealOddsSnapshot {
+  home: number;
+  draw: number;
+  away: number;
+  bookmaker: string;
+  isBetano: boolean;
+  isLive: boolean;
+  fetchedAt: string;
+}
+
 export interface MatchEntry {
   id: string;
   homeTeamId: string;
@@ -82,6 +92,7 @@ export interface MatchEntry {
   date: string; // ISO date chosen by user
   competition: CompetitionType;
   notes: string;
+  realOdds?: RealOddsSnapshot;
 }
 
 export interface BetLeg {

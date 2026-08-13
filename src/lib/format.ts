@@ -20,6 +20,15 @@ export function fmtDate(iso: string): string {
   }
 }
 
+export function fmtDateTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('es-ES', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return iso;
+  }
+}
+
 export const COMPETITION_LABEL: Record<string, string> = {
   liga: 'Liga',
   copa: 'Copa',
