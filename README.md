@@ -28,17 +28,24 @@ apuntando a una cuota objetivo de **1.5–2.0**.
 
 El panel **"🌍 Explorar partidos reales"** usa la API pública (no documentada
 oficialmente) de SofaScore para listar partidos reales de cualquier liga o copa del
-mundo. Al pulsar "+ Analizar" en un partido:
+mundo. SofaScore no permite llamar a su API directamente desde el navegador (CORS), así
+que el listado de partidos de hoy + los próximos 2 días se genera del lado del servidor:
+un workflow de GitHub Actions (`.github/workflows/deploy.yml`, script
+`scripts/fetch-fixtures.mjs`) lo trae cada ~15 minutos y lo publica como
+`public/data/fixtures.json`, un archivo estático que la app lee desde su propio origen
+— sin depender de CORS. Si pedís una fecha fuera de ese rango, la app intenta una
+llamada en vivo (con un proxy público de respaldo) que puede fallar.
+
+Al pulsar "+ Analizar" en un partido:
 
 - Si el equipo no está en la base curada, se crea automáticamente con datos neutros
   editables (no hace falta que sea un equipo "conocido").
-- Se intenta traer, en paralelo y con manejo de errores: forma reciente real (últimos 5
-  resultados y goles), días de descanso desde el último partido, promedio real de
-  córners/tarjetas de los últimos partidos, historial de enfrentamientos directos, y el
-  nombre del árbitro asignado.
-- Como es una API no oficial, algún dato puede no venir disponible; en ese caso el
-  análisis usa promedios neutros que puedes corregir a mano desde el editor de equipo o
-  de árbitro.
+- Se intenta traer, en paralelo y con manejo de errores, directo desde el navegador:
+  forma reciente real (últimos 5 resultados y goles), días de descanso desde el último
+  partido, promedio real de córners/tarjetas de los últimos partidos, historial de
+  enfrentamientos directos, y el nombre del árbitro asignado. Esta parte sí puede
+  fallar por CORS; en ese caso el análisis usa promedios neutros que puedes corregir a
+  mano desde el editor de equipo o de árbitro.
 
 ## Mercado de tarjetas y árbitros
 

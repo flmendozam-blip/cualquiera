@@ -6,17 +6,30 @@
 
 const BASE = 'https://api.sofascore.com/api/v1';
 
+// SofaScore no permite llamadas directas desde el navegador (sin cabeceras CORS), así
+// que como respaldo se reintenta a través de un proxy público de solo lectura antes de
+// darnos por vencidos.
+const CORS_PROXY = (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+
 export class SofaScoreError extends Error {}
 
-async function getJson<T>(path: string): Promise<T> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}${path}`, { headers: { Accept: 'application/json' } });
-  } catch {
-    throw new SofaScoreError('No se pudo contactar a SofaScore (red bloqueada o CORS).');
-  }
-  if (!res.ok) throw new SofaScoreError(`SofaScore respondió ${res.status}.`);
+async function tryFetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as T;
+}
+
+async function getJson<T>(path: string): Promise<T> {
+  const url = `${BASE}${path}`;
+  try {
+    return await tryFetchJson<T>(url);
+  } catch {
+    try {
+      return await tryFetchJson<T>(CORS_PROXY(url));
+    } catch {
+      throw new SofaScoreError('No se pudo contactar a SofaScore (bloqueado incluso vía proxy de respaldo).');
+    }
+  }
 }
 
 export interface SofaTeamRef {
@@ -44,6 +57,37 @@ export function dateKey(d: Date): string {
 export async function fetchScheduledEvents(date: string): Promise<SofaEvent[]> {
   const data = await getJson<{ events?: SofaEvent[] }>(`/sport/football/scheduled-events/${date}`);
   return data.events ?? [];
+}
+
+export interface FixturesSnapshot {
+  generatedAt: string | null;
+  days: Record<string, SofaEvent[]>;
+}
+
+/**
+ * Snapshot estático generado por un workflow de GitHub Actions (corre cada ~15 min,
+ * sin restricción de CORS porque se ejecuta en un servidor). Se sirve desde el propio
+ * origen de la app, así que siempre carga sin depender de si el navegador puede llamar
+ * a SofaScore directamente.
+ */
+export async function fetchFixturesSnapshot(): Promise<FixturesSnapshot> {
+  const res = await fetch(`${import.meta.env.BASE_URL}data/fixtures.json`);
+  if (!res.ok) throw new SofaScoreError('No se pudo leer el snapshot de partidos.');
+  return (await res.json()) as FixturesSnapshot;
+}
+
+/** Usa el snapshot estático si tiene la fecha pedida; si no, intenta la llamada en vivo (con proxy de respaldo). */
+export async function fetchScheduledEventsSmart(date: string): Promise<{ events: SofaEvent[]; source: 'snapshot' | 'live'; generatedAt: string | null }> {
+  try {
+    const snapshot = await fetchFixturesSnapshot();
+    if (snapshot.days[date]) {
+      return { events: snapshot.days[date], source: 'snapshot', generatedAt: snapshot.generatedAt };
+    }
+  } catch {
+    /* si el snapshot no está disponible, seguimos con la llamada en vivo */
+  }
+  const events = await fetchScheduledEvents(date);
+  return { events, source: 'live', generatedAt: null };
 }
 
 function resultChar(gf: number, ga: number): 'W' | 'D' | 'L' {

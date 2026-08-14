@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAppState } from '../store/AppState';
 import {
-  fetchScheduledEvents,
+  fetchScheduledEventsSmart,
   fetchTeamEvents,
   fetchTeamCornersCardsAverage,
   fetchH2H,
@@ -19,6 +19,13 @@ import { cn, fmtDateTime } from '../lib/format';
 import type { Team } from '../types';
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
+
+function minutesAgo(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1) return 'hace instantes';
+  if (mins === 1) return 'hace 1 min';
+  return `hace ${mins} min`;
+}
 
 function quickDates(): { label: string; date: string }[] {
   const today = new Date();
@@ -39,6 +46,7 @@ export function FixtureBrowser() {
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState<Set<number>>(new Set());
   const [added, setAdded] = useState<Set<number>>(new Set());
+  const [freshness, setFreshness] = useState<{ source: 'snapshot' | 'live'; generatedAt: string | null } | null>(null);
 
   const alreadyAdded = new Set(matches.map((m) => m.sofascoreEventId).filter((x): x is number => x != null));
 
@@ -47,11 +55,13 @@ export function FixtureBrowser() {
     setLoading(true);
     setError('');
     try {
-      const evs = await fetchScheduledEvents(d);
+      const { events: evs, source, generatedAt } = await fetchScheduledEventsSmart(d);
       setEvents(evs.filter((e) => e.status?.type !== 'finished'));
+      setFreshness({ source, generatedAt });
     } catch (e) {
       setError(e instanceof SofaScoreError ? e.message : 'No se pudieron cargar los partidos de SofaScore.');
       setEvents([]);
+      setFreshness(null);
     } finally {
       setLoading(false);
     }
@@ -159,10 +169,11 @@ export function FixtureBrowser() {
       {open && (
         <div className="px-5 pb-5 flex flex-col gap-4">
           <p className="text-sm text-slate-300">
-            Lista partidos reales de cualquier competición y equipo (no solo los conocidos) para la fecha elegida, usando
-            datos abiertos de SofaScore. Al pulsar "Analizar" se trae la forma reciente real, descanso, córners, tarjetas,
-            historial H2H y el árbitro asignado cuando están disponibles — es una API no oficial, así que algunos datos
-            pueden faltar; en ese caso el análisis usa promedios neutros que puedes editar a mano.
+            Lista partidos reales de cualquier competición y equipo (no solo los conocidos) para la fecha elegida. Los
+            partidos de hoy y los próximos 2 días se actualizan solos cada ~15 minutos desde el servidor, así que siempre
+            cargan. Al pulsar "Analizar" además se intenta traer forma reciente real, descanso, córners, tarjetas,
+            historial H2H y árbitro — eso sí depende de una API no oficial y puede fallar; en ese caso el análisis usa
+            promedios neutros que puedes editar a mano.
           </p>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -197,6 +208,14 @@ export function FixtureBrowser() {
               </button>
             )}
           </div>
+
+          {freshness && !loading && (
+            <p className="text-[11px] text-slate-500">
+              {freshness.source === 'snapshot' && freshness.generatedAt
+                ? `Actualizado ${minutesAgo(freshness.generatedAt)} · se refresca solo cada ~15 min`
+                : 'Datos en vivo (consulta directa)'}
+            </p>
+          )}
 
           {loading && <p className="text-sm text-slate-400">Cargando partidos…</p>}
           {error && <p className="text-sm text-rose-400">{error}</p>}
