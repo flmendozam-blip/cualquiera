@@ -22,7 +22,7 @@ const REGIONS = [
 
 export function LiveOddsPanel() {
   const { teams, oddsApiKey, setOddsApiKey, addMatch, matches } = useAppState();
-  const [open, setOpen] = useState(!oddsApiKey);
+  const [open, setOpen] = useState(false);
   const [keyInput, setKeyInput] = useState('');
 
   const [sports, setSports] = useState<OddsSport[]>([]);

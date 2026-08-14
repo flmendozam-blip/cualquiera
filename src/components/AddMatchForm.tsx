@@ -33,7 +33,7 @@ export function AddMatchForm() {
   return (
     <form onSubmit={handleSubmit} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
       <div>
-        <h2 className="text-lg font-semibold text-white">1. Indica un partido</h2>
+        <h2 className="text-lg font-semibold text-white">Agregar partido manualmente</h2>
         <p className="text-sm text-slate-400">Elige local, visitante, fecha y tipo de competición. El análisis se genera al instante.</p>
       </div>
       <div className="grid sm:grid-cols-2 gap-3">

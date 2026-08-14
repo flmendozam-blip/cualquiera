@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppState } from '../store/AppState';
 import {
   fetchScheduledEvents,
@@ -31,7 +31,7 @@ function quickDates(): { label: string; date: string }[] {
 
 export function FixtureBrowser() {
   const { teams, h2h, ensureTeam, updateTeam, addH2HMatch, ensureReferee, addMatch, matches } = useAppState();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [date, setDate] = useState(() => dateKey(new Date()));
   const [query, setQuery] = useState('');
   const [events, setEvents] = useState<SofaEvent[]>([]);
@@ -56,6 +56,12 @@ export function FixtureBrowser() {
       setLoading(false);
     }
   }
+
+  // Al abrir la app, carga automáticamente los partidos de hoy — sin que el usuario tenga que elegir nada primero.
+  useEffect(() => {
+    load(dateKey(new Date()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -185,9 +191,9 @@ export function FixtureBrowser() {
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 min-w-[180px] bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100"
             />
-            {events.length === 0 && !loading && (
+            {!loading && (
               <button onClick={() => load(date)} className="bg-pitch-600 hover:bg-pitch-500 text-white text-sm font-semibold px-4 py-1.5 rounded-lg">
-                Cargar partidos
+                {error ? 'Reintentar' : 'Actualizar'}
               </button>
             )}
           </div>

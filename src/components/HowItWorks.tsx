@@ -2,20 +2,20 @@ import { useState } from 'react';
 
 const STEPS = [
   {
-    title: '1. Elige el partido',
-    body: 'Selecciona local, visitante, fecha y competición. Cada equipo trae datos de ejemplo (forma, ataque/defensa, localía) que puedes editar con la información real y actual.',
+    title: '1. Partidos reales del día',
+    body: 'La app se conecta a SofaScore y te muestra los partidos que se juegan hoy, próximos días o en vivo — no hace falta elegir equipos a mano. Toca "Analizar" en el que te interese.',
   },
   {
-    title: '2. Motor estadístico (Poisson)',
-    body: 'A partir del ataque/defensa de cada equipo se calculan los goles esperados (xG). Luego se ajustan por forma reciente, descanso, bajas, historial H2H y el tipo de competición.',
+    title: '2. Datos reales al instante',
+    body: 'Al analizarlo, trae forma reciente, descanso, córners, tarjetas, H2H y árbitro asignado del partido real. Si algo no está disponible, usa un promedio editable.',
   },
   {
-    title: '3. Probabilidad → cuota',
-    body: 'Con el xG se construye la distribución de resultados y se obtiene la probabilidad de cada mercado (1X2, doble oportunidad, más/menos 2.5 goles, ambos anotan). La probabilidad se convierte en una cuota estimada de mercado.',
+    title: '3. Motor estadístico (Poisson)',
+    body: 'Con esos datos se calculan goles, córners y tarjetas esperados, ajustados por localía, historial H2H, rigurosidad del árbitro y el tipo de competición.',
   },
   {
     title: '4. Zona objetivo 1.5–2.0',
-    body: 'Marcamos con 🎯 los mercados cuya cuota cae en el rango 1.5–2.0: buscan un equilibrio entre probabilidad razonablemente alta y una ganancia que valga la pena.',
+    body: 'Marcamos con 🎯 los mercados (1X2, córners, tarjetas, más/menos goles, ambos anotan) cuya cuota cae en el rango 1.5–2.0: buscan equilibrio entre probabilidad alta y una ganancia que valga la pena.',
   },
   {
     title: '5. Simple o combinada',
