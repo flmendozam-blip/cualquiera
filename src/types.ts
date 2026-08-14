@@ -32,8 +32,6 @@ export interface Team {
   cornersFor: number; // avg córners a favor por partido
   cornersAgainst: number; // avg córners en contra por partido
   avgCardsFor: number; // avg tarjetas (amarillas + 2*rojas) recibidas por partido
-  formSource?: 'seed' | 'sofascore'; // origen del dato de forma/ataque-defensa
-  sofascoreTeamId?: number; // id en SofaScore, para reconocer el mismo equipo entre partidos
 }
 
 export interface Referee {
@@ -41,7 +39,7 @@ export interface Referee {
   name: string;
   avgCardsPerMatch: number; // promedio de tarjetas totales (ambos equipos) que muestra por partido
   matchesSample: number; // partidos usados para calcular el promedio (confianza del dato)
-  source: 'seed' | 'sofascore' | 'manual';
+  source: 'seed' | 'manual';
 }
 
 export interface H2HMatch {
@@ -113,7 +111,6 @@ export interface MatchEntry {
   notes: string;
   realOdds?: RealOddsSnapshot;
   refereeId?: string;
-  sofascoreEventId?: number;
 }
 
 export interface BetLeg {

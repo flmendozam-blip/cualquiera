@@ -2,12 +2,12 @@ import { useState } from 'react';
 
 const STEPS = [
   {
-    title: '1. Partidos reales del día',
-    body: 'La app se conecta a SofaScore y te muestra los partidos que se juegan hoy, próximos días o en vivo — no hace falta elegir equipos a mano. Toca "Analizar" en el que te interese.',
+    title: '1. Partidos y cuotas reales',
+    body: 'Conectá tu API key gratuita de The Odds API y elegí una liga: la app te muestra los partidos próximos o en vivo con sus cuotas reales (incluida Betano) — no hace falta elegir equipos a mano. Tocá "Analizar" en el que te interese.',
   },
   {
-    title: '2. Datos reales al instante',
-    body: 'Al analizarlo, trae forma reciente, descanso, córners, tarjetas, H2H y árbitro asignado del partido real. Si algo no está disponible, usa un promedio editable.',
+    title: '2. Equipo nuevo, análisis al instante',
+    body: 'Si el rival no está en la base curada, se crea automáticamente con datos promedio editables — podés ajustar forma, córners, tarjetas o bajas desde su propio editor.',
   },
   {
     title: '3. Motor estadístico (Poisson)',

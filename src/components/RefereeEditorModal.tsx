@@ -23,7 +23,7 @@ export function RefereeEditorModal({ refereeId, onClose }: { refereeId: string; 
           <div>
             <h3 className="text-lg font-semibold text-white">🟨 {referee.name}</h3>
             <p className="text-xs text-slate-400">
-              {strictness} · {referee.source === 'sofascore' ? 'nombre real vía SofaScore' : referee.source === 'seed' ? 'ejemplo' : 'manual'}
+              {strictness} · {referee.source === 'seed' ? 'ejemplo' : 'manual'}
             </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white text-xl leading-none">✕</button>

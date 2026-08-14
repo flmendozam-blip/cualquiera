@@ -25,12 +25,12 @@ interface AppStateValue {
     awayTeamId: string,
     date: string,
     competition: CompetitionType,
-    extra?: { realOdds?: RealOddsSnapshot; refereeId?: string; sofascoreEventId?: number }
+    extra?: { realOdds?: RealOddsSnapshot; refereeId?: string }
   ) => void;
   removeMatch: (matchId: string) => void;
   setMatchReferee: (matchId: string, refereeId: string | undefined) => void;
   updateTeam: (teamId: string, patch: Partial<Team>) => void;
-  ensureTeam: (sofascoreTeamId: number, name: string, short: string, league: string, country: string) => string;
+  ensureTeam: (name: string, short: string, league: string, country: string) => string;
   addAbsence: (teamId: string, absence: Omit<Absence, 'id'>) => void;
   removeAbsence: (teamId: string, absenceId: string) => void;
   addH2HMatch: (record: Omit<H2HMatch, 'id'>) => void;
@@ -70,7 +70,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       awayTeamId: string,
       date: string,
       competition: CompetitionType,
-      extra?: { realOdds?: RealOddsSnapshot; refereeId?: string; sofascoreEventId?: number }
+      extra?: { realOdds?: RealOddsSnapshot; refereeId?: string }
     ) => {
       setMatches((prev) => [
         ...prev,
@@ -83,7 +83,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           notes: '',
           realOdds: extra?.realOdds,
           refereeId: extra?.refereeId,
-          sofascoreEventId: extra?.sofascoreEventId,
         },
       ]);
     },
@@ -104,10 +103,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const ensureTeam = useCallback(
-    (sofascoreTeamId: number, name: string, short: string, league: string, country: string): string => {
-      const existing = teams.find((t) => t.sofascoreTeamId === sofascoreTeamId) ?? matchTeam(name, teams);
+    (name: string, short: string, league: string, country: string): string => {
+      const existing = matchTeam(name, teams);
       if (existing) return existing.id;
-      const created = createNeutralTeam(`sofa-${sofascoreTeamId}`, name, short, league, country, sofascoreTeamId);
+      const slug = name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      const created = createNeutralTeam(`ext-${slug}`, name, short, league, country);
       setTeams((prev) => [...prev, created]);
       return created.id;
     },
@@ -131,7 +136,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const id = nextId('ref');
       setReferees((prev) => [
         ...prev,
-        { id, name, avgCardsPerMatch: LEAGUE_AVG_CARDS_PER_MATCH, matchesSample: 0, source: 'sofascore' },
+        { id, name, avgCardsPerMatch: LEAGUE_AVG_CARDS_PER_MATCH, matchesSample: 0, source: 'manual' },
       ]);
       return id;
     },

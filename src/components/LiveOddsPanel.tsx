@@ -10,7 +10,6 @@ import {
   type OddsSport,
   type OddsEvent,
 } from '../lib/oddsApi';
-import { matchTeam } from '../lib/teamMatch';
 import { cn, fmtOdds, fmtDateTime } from '../lib/format';
 
 const REGIONS = [
@@ -21,8 +20,8 @@ const REGIONS = [
 ];
 
 export function LiveOddsPanel() {
-  const { teams, oddsApiKey, setOddsApiKey, addMatch, matches } = useAppState();
-  const [open, setOpen] = useState(false);
+  const { oddsApiKey, setOddsApiKey, ensureTeam, addMatch } = useAppState();
+  const [open, setOpen] = useState(true);
   const [keyInput, setKeyInput] = useState('');
 
   const [sports, setSports] = useState<OddsSport[]>([]);
@@ -37,8 +36,6 @@ export function LiveOddsPanel() {
   const [oddsError, setOddsError] = useState('');
   const [remaining, setRemaining] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
-
-  const alreadyInMatches = new Set(matches.map((m) => `${m.homeTeamId}|${m.awayTeamId}|${m.date}`));
 
   async function loadSports() {
     setLoadingSports(true);
@@ -74,15 +71,14 @@ export function LiveOddsPanel() {
   }
 
   function handleAnalyze(ev: OddsEvent) {
-    const home = matchTeam(ev.home_team, teams);
-    const away = matchTeam(ev.away_team, teams);
-    if (!home || !away) return;
+    const homeId = ensureTeam(ev.home_team, ev.home_team, ev.sport_title, '');
+    const awayId = ensureTeam(ev.away_team, ev.away_team, ev.sport_title, '');
     const { bm, isBetano } = pickBookmaker(ev.bookmakers);
     const prices = h2hPrices(bm, ev.home_team, ev.away_team);
     const isLive = new Date(ev.commence_time).getTime() <= Date.now();
     const competition = guessCompetition(ev.sport_title);
     const date = ev.commence_time.slice(0, 10);
-    addMatch(home.id, away.id, date, competition, {
+    addMatch(homeId, awayId, date, competition, {
       realOdds:
         prices && bm ? { ...prices, bookmaker: bm.title, isBetano, isLive, fetchedAt: new Date().toISOString() } : undefined,
     });
@@ -93,7 +89,7 @@ export function LiveOddsPanel() {
     <div className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden">
       <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between px-5 py-4 text-left">
         <span className="text-white font-semibold">
-          🔌 Cuotas reales (Betano y otras casas) — opcional {oddsApiKey && <span className="text-pitch-400 text-xs">· conectado</span>}
+          🌍 Partidos reales y cuotas (The Odds API) {oddsApiKey && <span className="text-pitch-400 text-xs">· conectado</span>}
         </span>
         <span className="text-slate-400 text-sm">{open ? 'Ocultar' : 'Mostrar'}</span>
       </button>
@@ -103,9 +99,11 @@ export function LiveOddsPanel() {
           {!oddsApiKey ? (
             <div className="bg-slate-800/50 rounded-xl p-4 flex flex-col gap-3 text-sm">
               <p className="text-slate-300">
-                No hacemos scraping de Betano: conectamos con <span className="text-slate-100 font-medium">The Odds API</span>,
-                un proveedor independiente que agrega cuotas reales de casas de apuestas (incluida Betano cuando está
-                disponible en tu región) por un canal oficial. Crea una cuenta gratuita en{' '}
+                Así es como esta app se conecta a partidos reales: probamos primero con SofaScore, pero bloquea el acceso
+                automatizado (tanto desde el navegador como desde un servidor), así que usamos{' '}
+                <span className="text-slate-100 font-medium">The Odds API</span>, un proveedor pensado justamente para esto —
+                lista partidos próximos y en vivo con cuotas reales de casas de apuestas (incluida Betano cuando está
+                disponible en tu región). No hacemos scraping de Betano. Crea una cuenta gratuita en{' '}
                 <span className="text-slate-100 font-medium">the-odds-api.com</span> (plan free: 500 solicitudes/mes),
                 copia tu API key y pégala aquí. Se guarda solo en este navegador.
               </p>
@@ -203,11 +201,7 @@ export function LiveOddsPanel() {
                         const { bm, isBetano } = pickBookmaker(ev.bookmakers);
                         const prices = h2hPrices(bm, ev.home_team, ev.away_team);
                         const isLive = new Date(ev.commence_time).getTime() <= Date.now();
-                        const home = matchTeam(ev.home_team, teams);
-                        const away = matchTeam(ev.away_team, teams);
-                        const canAnalyze = Boolean(home && away);
-                        const dupKey = home && away ? `${home.id}|${away.id}|${ev.commence_time.slice(0, 10)}` : '';
-                        const already = addedIds.has(ev.id) || (dupKey && alreadyInMatches.has(dupKey));
+                        const already = addedIds.has(ev.id);
 
                         return (
                           <li key={ev.id} className="bg-slate-800/40 border border-slate-800 rounded-xl p-3 flex flex-col gap-2">
@@ -238,18 +232,13 @@ export function LiveOddsPanel() {
                             )}
                             <button
                               onClick={() => handleAnalyze(ev)}
-                              disabled={!canAnalyze || Boolean(already)}
-                              title={!canAnalyze ? 'Alguno de los equipos no está en nuestra base de datos todavía' : undefined}
+                              disabled={already}
                               className={cn(
                                 'self-start text-sm font-medium rounded-lg px-3 py-1.5',
-                                already
-                                  ? 'bg-slate-700 text-slate-400'
-                                  : canAnalyze
-                                  ? 'bg-slate-100 text-slate-900 hover:bg-white'
-                                  : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                                already ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-900 hover:bg-white'
                               )}
                             >
-                              {already ? '✓ Agregado' : canAnalyze ? '+ Analizar este partido' : 'Equipo no disponible en nuestra base'}
+                              {already ? '✓ Agregado' : '+ Analizar este partido'}
                             </button>
                           </li>
                         );

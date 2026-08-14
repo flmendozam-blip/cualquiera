@@ -3,9 +3,9 @@ import type { Team } from '../types';
 // Datos "semilla" de equipos conocidos. La identidad (nombre, liga, país) es real.
 // La forma reciente, el rating, córners/tarjetas y las bajas son valores de ejemplo
 // editables desde la propia interfaz: actualízalos con los datos actuales antes de
-// analizar un partido para obtener la máxima precisión posible. Los partidos que
-// traigas desde "Explorar partidos reales" generan y ajustan estos datos automáticamente
-// para cualquier equipo, no solo los de esta lista.
+// analizar un partido para obtener la máxima precisión posible. Los partidos reales que
+// traigas desde "Partidos reales y cuotas" crean equipos nuevos automáticamente para
+// cualquier rival, no solo los de esta lista.
 export const TEAMS: Team[] = [
   {
     id: 'real-madrid', name: 'Real Madrid', short: 'RMA', league: 'La Liga', country: 'España',
@@ -172,14 +172,7 @@ export const TEAM_MAP: Record<string, Team> = Object.fromEntries(
 let dynamicCounter = 1;
 
 /** Crea un equipo con valores promedio neutros para partidos reales fuera de la lista curada. */
-export function createNeutralTeam(
-  id: string,
-  name: string,
-  short: string,
-  league: string,
-  country: string,
-  sofascoreTeamId?: number
-): Team {
+export function createNeutralTeam(id: string, name: string, short: string, league: string, country: string): Team {
   return {
     id: id || `team-${dynamicCounter++}`,
     name,
@@ -198,7 +191,5 @@ export function createNeutralTeam(
     cornersFor: 5.0,
     cornersAgainst: 5.0,
     avgCardsFor: 2.2,
-    formSource: 'seed',
-    sofascoreTeamId,
   };
 }

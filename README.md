@@ -1,17 +1,17 @@
 # ⚽ Analizador de Apuestas Deportivas
 
 Aplicación web (React + TypeScript + Vite + Tailwind) para analizar partidos de fútbol
-entre equipos conocidos y recibir una recomendación de apuesta (simple o combinada)
-apuntando a una cuota objetivo de **1.5–2.0**.
+reales y recibir una recomendación de apuesta (simple o combinada) apuntando a una cuota
+objetivo de **1.5–2.0**.
 
 ## Qué hace
 
-1. **Explora partidos reales**: el panel "🌍 Explorar partidos reales (SofaScore)" lista
-   los partidos programados o en vivo de cualquier competición y equipo del mundo para la
-   fecha que elijas — no solo equipos conocidos — y con un clic trae forma reciente real,
-   descanso, córners, tarjetas, historial H2H y el árbitro asignado.
+1. **Partidos y cuotas reales**: el panel "🌍 Partidos reales y cuotas (The Odds API)"
+   lista partidos próximos o en vivo de las ligas que elijas, con sus cuotas 1X2 reales
+   (incluida Betano cuando está disponible) — no hace falta elegir equipos a mano. Si un
+   rival no está en la base curada, se crea automáticamente con datos editables.
 2. **O indícalo a mano**: elige local, visitante, fecha y competición entre ~25 equipos
-   conocidos precargados, o cualquier equipo que hayas traído desde SofaScore.
+   conocidos precargados, o cualquier equipo que hayas traído del panel de arriba.
 3. **Motor de análisis**: calcula goles esperados (modelo de Poisson) a partir del
    ataque/defensa de cada equipo, y los ajusta según forma reciente, ventaja de
    localía, descanso/fatiga, bajas relevantes, historial de enfrentamientos directos
@@ -24,55 +24,37 @@ apuntando a una cuota objetivo de **1.5–2.0**.
    calcula la cuota y probabilidad combinada en tiempo real, avisando si el riesgo es
    demasiado alto.
 
-## Partidos reales y equipos "no conocidos" (SofaScore)
+## Por qué The Odds API y no SofaScore
 
-El panel **"🌍 Explorar partidos reales"** usa la API pública (no documentada
-oficialmente) de SofaScore para listar partidos reales de cualquier liga o copa del
-mundo. SofaScore no permite llamar a su API directamente desde el navegador (CORS), así
-que el listado de partidos de hoy + los próximos 2 días se genera del lado del servidor:
-un workflow de GitHub Actions (`.github/workflows/deploy.yml`, script
-`scripts/fetch-fixtures.mjs`) lo trae cada ~15 minutos y lo publica como
-`public/data/fixtures.json`, un archivo estático que la app lee desde su propio origen
-— sin depender de CORS. Si pedís una fecha fuera de ese rango, la app intenta una
-llamada en vivo (con un proxy público de respaldo) que puede fallar.
+Primero se intentó listar partidos con la API pública (no oficial) de SofaScore, pero
+bloquea el acceso automatizado con un 403 — tanto llamadas directas desde el navegador
+(CORS) como desde un servidor (se probó en GitHub Actions y también fue bloqueado, señal
+de que filtran por reputación de IP/bot, no solo CORS). No tiene sentido intentar evadir
+esa protección, así que la app usa **[The Odds API](https://the-odds-api.com/)**: un
+proveedor pensado justamente para que apps de terceros consuman partidos y cuotas reales
+por un canal oficial y documentado. No se hace scraping de Betano en ningún momento.
 
-Al pulsar "+ Analizar" en un partido:
-
-- Si el equipo no está en la base curada, se crea automáticamente con datos neutros
-  editables (no hace falta que sea un equipo "conocido").
-- Se intenta traer, en paralelo y con manejo de errores, directo desde el navegador:
-  forma reciente real (últimos 5 resultados y goles), días de descanso desde el último
-  partido, promedio real de córners/tarjetas de los últimos partidos, historial de
-  enfrentamientos directos, y el nombre del árbitro asignado. Esta parte sí puede
-  fallar por CORS; en ese caso el análisis usa promedios neutros que puedes corregir a
-  mano desde el editor de equipo o de árbitro.
+Para usar este panel: creá una cuenta gratuita en the-odds-api.com (plan free: 500
+solicitudes/mes), pegá tu API key en el panel (se guarda solo en tu navegador), cargá las
+ligas disponibles y buscá partidos. Cada búsqueda de partidos consume una solicitud de tu
+cuota, por eso es un paso manual y no automático.
 
 ## Mercado de tarjetas y árbitros
 
-Cada partido tiene una sección de árbitro: si SofaScore trae su nombre se asigna
-automáticamente (con un promedio de tarjetas neutro hasta que lo ajustes), o puedes
-asignar/crear uno manualmente. Ese promedio, junto con el de tarjetas de ambos equipos,
-alimenta el mercado de más/menos tarjetas — puedes editarlo en cualquier momento desde su
-propio panel.
-
-## Cuotas reales (Betano y otras casas)
-
-El panel **"🔌 Cuotas reales"** conecta con [The Odds API](https://the-odds-api.com/), un
-agregador independiente de cuotas de casas de apuestas reales (Betano incluida cuando
-está disponible en la región) por un canal oficial — la app no hace scraping de Betano.
-Pega tu propia API key gratuita (se guarda solo en tu navegador), carga las ligas
-disponibles y busca partidos próximos o en vivo con sus cuotas 1X2 reales. Cada partido
-que analices desde ahí queda comparado, dentro de su tarjeta, contra la recomendación del
-modelo. La app no coloca apuestas por ti: la selección final siempre la haces tú en Betano.
+Cada partido tiene una sección de árbitro: podés asignar uno existente o crear uno nuevo
+con su promedio de tarjetas por partido. Ese promedio, junto con el de tarjetas de ambos
+equipos, alimenta el mercado de más/menos tarjetas — todo editable desde su propio panel.
 
 ## Datos de los equipos
 
-Los datos de identidad (nombre, liga, país) son reales. Los valores de forma reciente,
-rating, ataque/defensa, descanso, bajas e historial H2H son una **semilla editable**:
-haz clic en el nombre de cualquier equipo dentro de un partido para abrir su editor y
-actualizar esos valores con la información real y actual antes de analizar, y usa el
-editor de "Historial H2H" dentro de cada partido para cargar los enfrentamientos reales
-entre esos dos equipos.
+Los datos de identidad (nombre, liga, país) de los ~25 equipos precargados son reales.
+Los valores de forma reciente, rating, ataque/defensa, descanso, córners, tarjetas, bajas
+e historial H2H son una **semilla editable**: hacé clic en el nombre de cualquier equipo
+dentro de un partido para abrir su editor y actualizar esos valores con la información
+real y actual antes de analizar, y usá el editor de "Historial H2H" dentro de cada
+partido para cargar los enfrentamientos reales entre esos dos equipos. Los equipos que
+traigas desde el panel de partidos reales arrancan con valores promedio neutros que
+también podés ajustar ahí mismo.
 
 ## Desarrollo
 
@@ -81,6 +63,9 @@ npm install
 npm run dev      # servidor de desarrollo
 npm run build    # build de producción
 ```
+
+Se despliega automáticamente a GitHub Pages en cada push a la rama de este proyecto
+(`.github/workflows/deploy.yml`).
 
 ## Aviso
 

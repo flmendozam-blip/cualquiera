@@ -3,7 +3,6 @@ import { AppStateProvider, useAppState } from './store/AppState';
 import { Header } from './components/Header';
 import { HowItWorks } from './components/HowItWorks';
 import { AddMatchForm } from './components/AddMatchForm';
-import { FixtureBrowser } from './components/FixtureBrowser';
 import { LiveOddsPanel } from './components/LiveOddsPanel';
 import { MatchCard } from './components/MatchCard';
 import { BetSlip } from './components/BetSlip';
@@ -22,7 +21,7 @@ function AppContent() {
     <div className="min-h-screen max-w-6xl mx-auto px-4 py-6 flex flex-col gap-6">
       <Header />
       <HowItWorks />
-      <FixtureBrowser />
+      <LiveOddsPanel />
 
       <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
         <div className="flex flex-col gap-5">
@@ -40,8 +39,6 @@ function AppContent() {
             )}
           </div>
 
-          <LiveOddsPanel />
-
           <div>
             <h2 className="text-lg font-semibold text-white mb-1">Partidos analizados</h2>
             <p className="text-sm text-slate-400 mb-3">
@@ -55,7 +52,7 @@ function AppContent() {
               ))}
               {matches.length === 0 && (
                 <div className="text-sm text-slate-500 border border-dashed border-slate-700 rounded-2xl p-8 text-center">
-                  Elegí un partido de "Explorar partidos reales" arriba para empezar.
+                  Elegí un partido real de arriba (o agregalo manualmente) para empezar.
                 </div>
               )}
             </div>
