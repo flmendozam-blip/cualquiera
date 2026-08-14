@@ -6,16 +6,16 @@ const STEPS = [
     body: 'Conectá tu API key gratuita de The Odds API y elegí una liga: la app te muestra los partidos próximos o en vivo con sus cuotas reales (incluida Betano) — no hace falta elegir equipos a mano. Tocá "Analizar" en el que te interese.',
   },
   {
-    title: '2. Equipo nuevo, análisis al instante',
-    body: 'Si el rival no está en la base curada, se crea automáticamente con datos promedio editables — podés ajustar forma, córners, tarjetas o bajas desde su propio editor.',
+    title: '2. Detalle real del partido',
+    body: 'Con tu API key de API-Football (opcional) traés córners y remates al arco reales separados por local/visitante, y el árbitro asignado. Si el rival no está en la base curada, se crea automáticamente con datos promedio editables.',
   },
   {
     title: '3. Motor estadístico (Poisson)',
-    body: 'Con esos datos se calculan goles, córners y tarjetas esperados, ajustados por localía, historial H2H, rigurosidad del árbitro y el tipo de competición.',
+    body: 'Con esos datos se calculan goles, córners, remates al arco y tarjetas esperados, ajustados por localía, historial H2H, rigurosidad del árbitro asignado y el tipo de competición.',
   },
   {
     title: '4. Zona objetivo 1.5–2.0',
-    body: 'Marcamos con 🎯 los mercados (1X2, córners, tarjetas, más/menos goles, ambos anotan) cuya cuota cae en el rango 1.5–2.0: buscan equilibrio entre probabilidad alta y una ganancia que valga la pena.',
+    body: 'Marcamos con 🎯 los mercados (1X2, córners, remates al arco, tarjetas, más/menos goles, ambos anotan) cuya cuota cae en el rango 1.5–2.0: buscan equilibrio entre probabilidad alta y una ganancia que valga la pena.',
   },
   {
     title: '5. Simple o combinada',

@@ -32,6 +32,20 @@ export interface Team {
   cornersFor: number; // avg córners a favor por partido
   cornersAgainst: number; // avg córners en contra por partido
   avgCardsFor: number; // avg tarjetas (amarillas + 2*rojas) recibidas por partido
+  shotsOnTargetFor: number; // avg remates al arco a favor por partido
+  shotsOnTargetAgainst: number; // avg remates al arco en contra por partido
+  apiFootballTeamId?: number; // id resuelto en API-Football, para no tener que re-buscarlo
+  venueSplit?: {
+    home?: VenueStats;
+    away?: VenueStats;
+  };
+}
+
+export interface VenueStats {
+  matches: number;
+  cornersFor: number;
+  cornersAgainst: number;
+  shotsOnTargetFor: number;
 }
 
 export interface Referee {
@@ -67,7 +81,9 @@ export type MarketKey =
   | 'CORNERS_OVER'
   | 'CORNERS_UNDER'
   | 'CARDS_OVER'
-  | 'CARDS_UNDER';
+  | 'CARDS_UNDER'
+  | 'SHOTS_OT_OVER'
+  | 'SHOTS_OT_UNDER';
 
 export interface MarketResult {
   key: MarketKey;
@@ -84,6 +100,7 @@ export interface MatchAnalysis {
   xgAway: number;
   expectedCorners: number;
   expectedCards: number;
+  expectedShotsOnTarget: number;
   markets: MarketResult[];
   recommended: MarketResult | null;
   confidence: 'Alta' | 'Media' | 'Baja';

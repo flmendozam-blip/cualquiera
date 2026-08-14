@@ -17,9 +17,9 @@ objetivo de **1.5–2.0**.
    localía, descanso/fatiga, bajas relevantes, historial de enfrentamientos directos
    (H2H) y el tipo de competición (liga, copa, derbi, amistoso, etc.). También modela
    córners y tarjetas (ajustadas por el promedio de rigurosidad del árbitro asignado).
-4. **Recomendación con cuota objetivo**: de los 14 mercados calculados (1X2, doble
-   oportunidad, más/menos 2.5 goles, ambos anotan, más/menos córners, más/menos
-   tarjetas), destaca los que caen en el rango 1.5–2.0 de cuota estimada.
+4. **Recomendación con cuota objetivo**: de los 16 mercados calculados (1X2, doble
+   oportunidad, más/menos 2.5 goles, ambos anotan, más/menos córners, más/menos remates al
+   arco, más/menos tarjetas), destaca los que caen en el rango 1.5–2.0 de cuota estimada.
 5. **Boleto simple o combinado**: agrega selecciones de uno o varios partidos y la app
    calcula la cuota y probabilidad combinada en tiempo real, avisando si el riesgo es
    demasiado alto.
@@ -39,11 +39,29 @@ solicitudes/mes), pegá tu API key en el panel (se guarda solo en tu navegador),
 ligas disponibles y buscá partidos. Cada búsqueda de partidos consume una solicitud de tu
 cuota, por eso es un paso manual y no automático.
 
-## Mercado de tarjetas y árbitros
+## Detalle real del partido (córners, remates, árbitro) — API-Football
 
-Cada partido tiene una sección de árbitro: podés asignar uno existente o crear uno nuevo
-con su promedio de tarjetas por partido. Ese promedio, junto con el de tarjetas de ambos
-equipos, alimenta el mercado de más/menos tarjetas — todo editable desde su propio panel.
+Cada partido analizado tiene un botón **"🔎 Traer datos reales del partido"** que consulta
+[API-Football](https://rapidapi.com/api-sports/api/api-football) (vía RapidAPI): a
+diferencia de SofaScore, está pensada para que apps de terceros la llamen directo con una
+API key propia, así que no choca con CORS. Trae:
+
+- Córners y remates al arco reales de los últimos partidos de cada equipo, **separados
+  por local/visitante** — el modelo usa el promedio como local del equipo que juega en
+  casa y el promedio como visitante del que juega afuera, en vez de un promedio genérico.
+- El árbitro asignado al partido, que se asigna automáticamente en la sección de árbitro.
+
+Necesita tu propia API key gratuita de RapidAPI (plan free: 100 solicitudes/día — un
+análisis completo de un partido consume entre 10 y 15, así que alcanza para varios
+partidos por día). Si no tenés API key o la consulta falla, el análisis sigue funcionando
+con los promedios editables de siempre.
+
+## Árbitros
+
+Cada partido tiene una sección de árbitro: podés asignar uno existente, crear uno nuevo
+con su promedio de tarjetas por partido, o dejar que lo asigne automáticamente el botón de
+arriba. Ese promedio, junto con el de tarjetas de ambos equipos, alimenta el mercado de
+más/menos tarjetas — todo editable desde su propio panel.
 
 ## Datos de los equipos
 

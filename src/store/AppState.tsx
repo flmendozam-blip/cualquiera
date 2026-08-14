@@ -9,6 +9,7 @@ let uid = 1000;
 const nextId = (prefix: string) => `${prefix}-${uid++}`;
 
 const ODDS_API_KEY_STORAGE = 'oddsApiKey';
+const API_FOOTBALL_KEY_STORAGE = 'apiFootballKey';
 
 interface AppStateValue {
   teams: Team[];
@@ -18,6 +19,8 @@ interface AppStateValue {
   referees: Referee[];
   oddsApiKey: string;
   setOddsApiKey: (key: string) => void;
+  apiFootballKey: string;
+  setApiFootballKey: (key: string) => void;
   getTeam: (id: string) => Team | undefined;
   getReferee: (id?: string) => Referee | undefined;
   addMatch: (
@@ -54,11 +57,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [oddsApiKey, setOddsApiKeyState] = useState<string>(
     () => localStorage.getItem(ODDS_API_KEY_STORAGE) ?? ''
   );
+  const [apiFootballKey, setApiFootballKeyState] = useState<string>(
+    () => localStorage.getItem(API_FOOTBALL_KEY_STORAGE) ?? ''
+  );
 
   const setOddsApiKey = useCallback((key: string) => {
     setOddsApiKeyState(key);
     if (key) localStorage.setItem(ODDS_API_KEY_STORAGE, key);
     else localStorage.removeItem(ODDS_API_KEY_STORAGE);
+  }, []);
+
+  const setApiFootballKey = useCallback((key: string) => {
+    setApiFootballKeyState(key);
+    if (key) localStorage.setItem(API_FOOTBALL_KEY_STORAGE, key);
+    else localStorage.removeItem(API_FOOTBALL_KEY_STORAGE);
   }, []);
 
   const getTeam = useCallback((id: string) => teams.find((t) => t.id === id), [teams]);
@@ -187,6 +199,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       referees,
       oddsApiKey,
       setOddsApiKey,
+      apiFootballKey,
+      setApiFootballKey,
       getTeam,
       getReferee,
       addMatch,
@@ -213,6 +227,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       referees,
       oddsApiKey,
       setOddsApiKey,
+      apiFootballKey,
+      setApiFootballKey,
       getTeam,
       getReferee,
       addMatch,

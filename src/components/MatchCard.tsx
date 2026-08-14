@@ -7,6 +7,7 @@ import { TeamBadge } from './TeamBadge';
 import { OddsGauge } from './OddsGauge';
 import { H2HEditor } from './H2HEditor';
 import { RefereePicker } from './RefereePicker';
+import { MatchStatsFetcher } from './MatchStatsFetcher';
 import { cn, fmtDate, fmtOdds, pct, COMPETITION_LABEL } from '../lib/format';
 
 const CONFIDENCE_STYLE: Record<string, string> = {
@@ -100,9 +101,14 @@ export function MatchCard({
             🚩 Córners esp. <span className="text-slate-200 font-semibold">{analysis.expectedCorners.toFixed(1)}</span>
           </span>
           <span className="bg-slate-800/60 rounded-lg px-2.5 py-1.5 flex-1 text-center">
+            🎯 Remates esp. <span className="text-slate-200 font-semibold">{analysis.expectedShotsOnTarget.toFixed(1)}</span>
+          </span>
+          <span className="bg-slate-800/60 rounded-lg px-2.5 py-1.5 flex-1 text-center">
             🟨 Tarjetas esp. <span className="text-slate-200 font-semibold">{analysis.expectedCards.toFixed(1)}</span>
           </span>
         </div>
+
+        <MatchStatsFetcher match={match} home={home} away={away} />
 
         {referee ? (
           <button

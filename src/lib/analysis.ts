@@ -16,6 +16,7 @@ const LEAGUE_AVG_DEFENSE = 1.1;
 const LEAGUE_AVG_CORNERS_AGAINST = 5.0;
 const CORNERS_LINE = 9.5;
 const CARDS_LINE = 4.5;
+const SHOTS_OT_LINE = 8.5;
 const MAX_GOALS = 8;
 
 const MARKET_LABELS: Record<MarketKey, (home: Team, away: Team) => string> = {
@@ -33,6 +34,8 @@ const MARKET_LABELS: Record<MarketKey, (home: Team, away: Team) => string> = {
   CORNERS_UNDER: () => `Menos de ${CORNERS_LINE} córners`,
   CARDS_OVER: () => `Más de ${CARDS_LINE} tarjetas`,
   CARDS_UNDER: () => `Menos de ${CARDS_LINE} tarjetas`,
+  SHOTS_OT_OVER: () => `Más de ${SHOTS_OT_LINE} remates al arco`,
+  SHOTS_OT_UNDER: () => `Menos de ${SHOTS_OT_LINE} remates al arco`,
 };
 
 function formScore(form: Team['form']): number {
@@ -184,13 +187,25 @@ export function analyzeMatch(
   const pBttsYes = sumRegion(matrix, (h, a) => h >= 1 && a >= 1);
 
   // Córners esperados: mismo enfoque que los goles (a favor propio vs. en contra rival),
-  // con un pequeño extra de localía.
+  // con un pequeño extra de localía. Si hay datos reales de córners separados por
+  // local/visitante (traídos de API-Football), se usan en vez del promedio general.
+  const homeCornersForBase = home.venueSplit?.home?.cornersFor ?? home.cornersFor;
+  const awayCornersForBase = away.venueSplit?.away?.cornersFor ?? away.cornersFor;
   const cornersHome =
-    home.cornersFor * (away.cornersAgainst / LEAGUE_AVG_CORNERS_AGAINST) * (1 + home.homeAdvantage * 0.3);
+    homeCornersForBase * (away.cornersAgainst / LEAGUE_AVG_CORNERS_AGAINST) * (1 + home.homeAdvantage * 0.3);
   const cornersAway =
-    away.cornersFor * (home.cornersAgainst / LEAGUE_AVG_CORNERS_AGAINST) * (1 - home.homeAdvantage * 0.15);
+    awayCornersForBase * (home.cornersAgainst / LEAGUE_AVG_CORNERS_AGAINST) * (1 - home.homeAdvantage * 0.15);
   const expectedCorners = cornersHome + cornersAway;
   const pCornersOver = overProbability(expectedCorners, CORNERS_LINE);
+
+  // Remates al arco esperados: promedio propio (real por local/visitante si está disponible)
+  // ajustado por la fortaleza defensiva del rival.
+  const homeShotsForBase = home.venueSplit?.home?.shotsOnTargetFor ?? home.shotsOnTargetFor;
+  const awayShotsForBase = away.venueSplit?.away?.shotsOnTargetFor ?? away.shotsOnTargetFor;
+  const shotsHome = homeShotsForBase * (away.defense / LEAGUE_AVG_DEFENSE) * (1 + home.homeAdvantage * 0.2);
+  const shotsAway = awayShotsForBase * (home.defense / LEAGUE_AVG_DEFENSE) * (1 - home.homeAdvantage * 0.1);
+  const expectedShotsOnTarget = shotsHome + shotsAway;
+  const pShotsOTOver = overProbability(expectedShotsOnTarget, SHOTS_OT_LINE);
 
   // Tarjetas esperadas: promedio de cada equipo, ajustado por el árbitro asignado y el
   // extra de tensión de un derbi/clásico.
@@ -216,6 +231,8 @@ export function analyzeMatch(
     buildMarket('CORNERS_UNDER', home, away, 1 - pCornersOver),
     buildMarket('CARDS_OVER', home, away, pCardsOver),
     buildMarket('CARDS_UNDER', home, away, 1 - pCardsOver),
+    buildMarket('SHOTS_OT_OVER', home, away, pShotsOTOver),
+    buildMarket('SHOTS_OT_UNDER', home, away, 1 - pShotsOTOver),
   ];
 
   const inRange = markets.filter((m) => m.inTargetRange).sort((a, b) => b.probability - a.probability);
@@ -264,7 +281,10 @@ export function analyzeMatch(
     `Goles esperados (modelo Poisson): ${xgHome.toFixed(2)} para ${home.short} — ${xgAway.toFixed(2)} para ${away.short}.`
   );
   narrative.push(
-    `Córners esperados: ${expectedCorners.toFixed(1)} en total (${cornersHome.toFixed(1)} de ${home.short}, ${cornersAway.toFixed(1)} de ${away.short}).`
+    `Córners esperados: ${expectedCorners.toFixed(1)} en total (${cornersHome.toFixed(1)} de ${home.short}${home.venueSplit?.home ? ' — real como local' : ''}, ${cornersAway.toFixed(1)} de ${away.short}${away.venueSplit?.away ? ' — real como visitante' : ''}).`
+  );
+  narrative.push(
+    `Remates al arco esperados: ${expectedShotsOnTarget.toFixed(1)} en total (${shotsHome.toFixed(1)} de ${home.short}, ${shotsAway.toFixed(1)} de ${away.short}).`
   );
   if (referee) {
     narrative.push(
@@ -290,6 +310,7 @@ export function analyzeMatch(
     xgAway,
     expectedCorners,
     expectedCards,
+    expectedShotsOnTarget,
     markets,
     recommended,
     confidence,
